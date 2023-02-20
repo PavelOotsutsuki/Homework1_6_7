@@ -300,19 +300,24 @@ namespace Homework1_6_7
                     case ShowTrackInfoCommand:
                         track.ShowInfo();
                         break;
+
                     case ShowInfoCarriagesCommand:
                         train.ShowInfoCarriages();
                         break;
+
                     case ShowPassengersCarriageInfoCommand:
                         ShowPassengersCarriageInfo(train);
                         break;
+                        
                     case ShowCountPassengersCarriagesCommand:
                         ShowCountPassengersCarriages();
                         break;
+
                     case ExitCommand:
                         Console.WriteLine("Поезд уехал!");
                         isWork = false;
                         break;
+
                     default:
                         Console.WriteLine("Введена неверна команда");
                         break;
