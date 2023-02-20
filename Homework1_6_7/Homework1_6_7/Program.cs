@@ -50,17 +50,18 @@ namespace Homework1_6_7
         protected Random Random;
         protected int MinCountSeats;
         protected int MaxCountSeats;
-        protected List<Passenger> Passengers = new List<Passenger>();
 
         public Carriage()
         {
             Random = new Random();
+            Passengers = new List<Passenger>();
         }
 
         public int CountSeats { get; protected set; }
         public int Number { get; protected set; }
         public CarriageType Type { get; protected set; }
         public string Title { get; protected set; }
+        public List<Passenger> Passengers { get; protected set; }
 
         public void AddPassenger(Passenger passenger)
         {
@@ -125,10 +126,13 @@ namespace Homework1_6_7
 
     class Train
     {
+        private Dictionary<CarriageType, int> _countCarriages;
+
         public Train (Dictionary<CarriageType, int> countPassengersCarriage)
         {
             Carriages = new List<Carriage>();
 
+            AddAllCarriageTypes();
             CreateCarriages(countPassengersCarriage);
         }
 
@@ -142,6 +146,25 @@ namespace Homework1_6_7
                 carriage.ShowInfo();
                 Console.WriteLine();
                 Console.ReadKey();
+            }
+        }
+
+        public void ShowInfoCarriages()
+        {
+            int carriageNumber = 1;
+
+            foreach (var carriage in Carriages)
+            {
+                Console.WriteLine(carriageNumber + ": " + carriage.Type + ". Занято мест " + carriage.Passengers.Count + "/" + carriage.CountSeats);
+                carriageNumber++;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Итого:");
+
+            foreach (var carriage in _countCarriages)
+            {
+                Console.WriteLine(carriage.Key + ": " + carriage.Value);
             }
         }
 
@@ -169,6 +192,7 @@ namespace Homework1_6_7
                         Carriages.Add(new CompartmentCarriage(carriageNumber));
                     }
 
+                    _countCarriages[(CarriageType)i]++;
                     countPassengersCarriageCounter += Carriages[carriageNumber - 1].CountSeats;
                     carriageNumber++;
                 }
@@ -178,6 +202,17 @@ namespace Homework1_6_7
         public void SeatPassenger(int seat, Passenger passenger)
         {
            Carriages[seat-1].AddPassenger(passenger);
+        }
+
+        private void AddAllCarriageTypes()
+        {
+            int defaultCountCarriages = 0;
+            _countCarriages = new Dictionary<CarriageType, int>();
+
+            for (int i = 0; i < (int)CarriageType.Lenght; i++)
+            {
+                _countCarriages.Add((CarriageType)i, defaultCountCarriages);
+            }
         }
     }
 
@@ -233,14 +268,87 @@ namespace Homework1_6_7
 
             CreateTickets(train.Carriages, track);
             BuyTickets(train);
-            train.ShowInfo();
-            Console.WriteLine("Поезд уехал!");
-            Console.ReadKey();
+            ChoiceShowInfo(train,track);
         }
 
         public bool IsHaveTracks()
         {
             return _tracks.Count > 0;
+        }
+
+        private void ChoiceShowInfo(Train train, Track track)
+        {
+            const string ShowTrackInfoCommand = "1";
+            const string ShowInfoCarriagesCommand = "2";
+            const string ShowPassengersCarriageInfoCommand = "3";
+            const string ShowCountPassengersCarriagesCommand = "4";
+            const string ExitCommand = "5";
+
+            bool isWork = true;
+
+            while (isWork)
+            {
+                Console.Clear();
+                Console.WriteLine(ShowTrackInfoCommand + ". Вывести путь поезда");
+                Console.WriteLine(ShowInfoCarriagesCommand + ". Вывести информацию по вагонам");
+                Console.WriteLine(ShowPassengersCarriageInfoCommand + ". Вывести информацию по пассажирам определенного вагона");
+                Console.WriteLine(ShowCountPassengersCarriagesCommand + ". Вывести суммарное количество пассажиров каждого типа вагона");
+                Console.WriteLine(ExitCommand + ". Отправить поезд");
+
+                switch (Console.ReadLine())
+                {
+                    case ShowTrackInfoCommand:
+                        track.ShowInfo();
+                        break;
+                    case ShowInfoCarriagesCommand:
+                        train.ShowInfoCarriages();
+                        break;
+                    case ShowPassengersCarriageInfoCommand:
+                        ShowPassengersCarriageInfo(train);
+                        break;
+                    case ShowCountPassengersCarriagesCommand:
+                        ShowCountPassengersCarriages();
+                        break;
+                    case ExitCommand:
+                        Console.WriteLine("Поезд уехал!");
+                        isWork = false;
+                        break;
+                    default:
+                        Console.WriteLine("Введена неверна команда");
+                        break;
+                }
+
+                Console.ReadKey();
+            }
+        }
+
+        private void ShowPassengersCarriageInfo(Train train)
+        {
+            Console.Write("Введите номер вагона: ");
+
+            if (int.TryParse(Console.ReadLine(),out int carriageNumber))
+            {
+                if (carriageNumber>0 && carriageNumber<=train.Carriages.Count)
+                {
+                    train.Carriages[carriageNumber - 1].ShowInfo();
+                }
+                else
+                {
+                    Console.WriteLine("Такого вагона нет");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Введено неверное значение");
+            }
+        }
+
+        private void ShowCountPassengersCarriages()
+        {
+            foreach (var carriagePassengers in _countPassengersCarriage)
+            {
+                Console.WriteLine(carriagePassengers.Key + " - " + carriagePassengers.Value + " пассажиров");
+            }
         }
 
         private void CreatePassengers()
@@ -275,7 +383,7 @@ namespace Homework1_6_7
             {
                 for (int j = 0; j < carriages[i].CountSeats; j++)
                 {
-                    Ticket ticket = new Ticket(track.BeginCity, track.EndCity, track.BeginTime, track.EndTime, carriages[i].Type, carriages[i].Number, j + 1);
+                    Ticket ticket = new Ticket(track, carriages[i].Type, carriages[i].Number, j + 1);
                     _tickets.Add(ticket);
                     _countFreeSeatsCarriage[carriages[i].Type]++;
                 }
@@ -355,31 +463,30 @@ namespace Homework1_6_7
             _tracks.Enqueue(new Track("Санкт-Петебрург", "Омск", new DateTime(2023, 2, 1, 11, 0, 0), new DateTime(2023, 2, 2, 5, 30, 0)));
             _tracks.Enqueue(new Track("Санкт-Петебрург", "Москва", new DateTime(2023, 2, 1, 13, 0, 0), new DateTime(2023, 2, 1, 15, 30, 0)));
             _tracks.Enqueue(new Track("Санкт-Петебрург", "Нижний Новгород", new DateTime(2023, 2, 1, 15, 0, 0), new DateTime(2023, 2, 1, 19, 0, 0)));
-            _tracks.Enqueue(new Track("Санкт-Петебрург", "Волгоград", new DateTime(2023, 2, 1, 17, 0, 0), new DateTime(2023, 2, 3, 9, 30, 0)));
-            _tracks.Enqueue(new Track("Санкт-Петебрург", "Воронеж", new DateTime(2023, 2, 1, 22, 0, 0), new DateTime(2023, 2, 4, 6, 0, 0)));
-            _tracks.Enqueue(new Track("Санкт-Петебрург", "Череповец", new DateTime(2023, 2, 2, 6, 30, 0), new DateTime(2023, 2, 3, 15, 30, 0)));
         }
     }
 
-    class Ticket: Track
+    class Ticket
     {
         private bool _isActive;
         private string _name;
         private int _age;
+        private Track _track;
 
-        public Ticket(string beginCity, string endCity, DateTime beginTime, DateTime endTime, CarriageType carriageType, int carriageNumber, int seat) : base(beginCity, endCity, beginTime, endTime)
+        public Ticket(Track track, CarriageType carriageType, int carriageNumber, int seat)
         {
             _isActive = false;
             CarriageType = carriageType;
             CarriageNumber = carriageNumber;
             Seat = seat;
+            _track = track;
         }
 
         public int Seat { get; protected set; }
         public int CarriageNumber { get; protected set; }
         public CarriageType CarriageType { get; protected set; }
 
-        public override void ShowInfo()
+        public void ShowInfo()
         {
             if (_isActive)
             {
@@ -391,7 +498,7 @@ namespace Homework1_6_7
             }
 
             Console.WriteLine("Вагон номер " + CarriageNumber + ", тип вагона - " + CarriageType + ", место " + Seat);
-            base.ShowInfo();
+            _track.ShowInfo();
         }
 
         public void CheckIn(Passenger passenger)
